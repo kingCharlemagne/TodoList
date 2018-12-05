@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>TodoCommun</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+    <style type="text/css">
+        h1{
+            color: whitesmoke;
+        }
+        
+        li{
+            list-style-type: none; 
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar bg-dark justify-content-center text-capitalize">
+            <h1 class="navbar-brand">TodoCommun</h1>
+        </nav>
+    </header>
+
+    <section class="container-fluid mt-2">
+        <div class="row justify-content-around">
+            <!-- connect status -->
+            <div class="col col-lg-2">
+                <div class="card text-center">
+                    <div class="card-header">
+                        <h6>Statut :</h6>
+                    </div>
+                    <div class="card-body">
+                        <p id="status"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- todo content -->
+            <div class="col col-lg-8 mt-5">
+                <div class="card text-center">
+                    <div class="card-header"><h5>Liste des taches</h5></div>
+                    <div class="card-body"><!-- Code list  -->
+                        <ul id="todo">
+                            <% todolist.forEach((todo,index)=>{ %>
+                                <li><button type="button" class="btn mr-2" value="<%= index %>">x</button><%=todo%></li>
+                            <% }) %>   
+                        </ul>
+                    </div>
+                    <div class='card-footer'>
+                        <form method="POST" action="/todo" id="post" >
+                            <div class="row justify-content-center">
+                                <input class="form-control col-4" type="text" name="newTask"  id="newTask" placeholder="Nouvelle tache" required  autofocus>
+                                <button class="btn btn-outline-success ml-2" type="submit">Ajouter ^^</button>
+                            </div>
+                            <small id="help" class="form-text text-muted"></small>    
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User connect -->
+            <div class="col col-lg-2">
+                <div class="card text-center">
+                    <div class="card-header">
+                        <h5>Utilisateurs connectés</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul id="userConnect">
+                            
+                        </ul>
+                     </div>
+                 </div>
+            </div>
+        </div>
+    </section>
+
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let socket=io.connect('http://localhost:8080')
+        
+        // Pseudo
+        let pseudo=prompt('Pseudo');
+        socket.emit('pseudo',pseudo);
+
+        let status= document.getElementById('status');
+        status.textContent= pseudo+' est connecté';
+
+        // Pseudo return
+        socket.on('pseudo_return',(pseudo)=>{
+            let ul= document.getElementById('userConnect')
+            let li= document.createElement('li')
+            li.textContent=pseudo
+            ul.appendChild(li);
+        })
+
+        // Task
+        let post= document.getElementById('post')
+        post.addEventListener('submit',(e)=>{
+            e.preventDefault();
+            let task= post['newTask'].value;
+            if (task != "") {
+                socket.emit('task',task);
+                socket.task=task
+            } else {
+                let help= document.getElementById('help');
+                help.textContent='Champs vide';
+            }
+        })
+
+        //  task_return_index
+        socket.on('task_return_index',(index)=>{
+            insertTask(socket.task,index);
+        })
+
+        // task_return_client
+        socket.on('task_return_client',(data)=>{
+            insertTask(data.task,data.index);
+        })
+
+        // task_delete
+        let ulTodo=document.getElementById('todo');
+        ulTodo.addEventListener('click',(e)=>{
+            e.preventDefault();
+            if(e.target.value != '' && Number(e.target.value) != NaN){
+            socket.emit('index_delete', e.target.value);
+            }
+        })
+
+        // task_delete_return
+        socket.on('ArraySlice',(newArray)=>{
+            ulTodo.innerHTML='';
+            newArray.forEach((task,index) => {
+                insertTask(task,index);
+            });
+        })            
+
+        function insertTask(task,index) {
+            let ulTodo= document.getElementById('todo');
+            let liTodo= document.createElement('li');
+            liTodo.textContent=task;
+            liTodo.insertAdjacentHTML('afterbegin','<button type="button" class="btn mr-2" value= '+index+'>x</button>');
+            ulTodo.appendChild(liTodo);
+        }
+
+    </script>
+</body>
+</html>
